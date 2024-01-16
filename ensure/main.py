@@ -112,7 +112,7 @@ class ChainInspector(Inspector):
         return Ensure(self._subject)
 
     def __repr__(self):
-        return "{}: OK".format(Inspector.__repr__(self))
+        return f"{Inspector.__repr__(self)}: OK"
 
 
 class KeyInspector(Inspector):
@@ -148,7 +148,7 @@ class MultiInspector(Inspector):
                 inspector = self._get_inspector(subject)
                 inspect_method = getattr(inspector, item)
                 sub_inspectors.append(inspect_method(*args, **kwargs))
-            if not all(i is None for i in sub_inspectors):
+            if any(i is not None for i in sub_inspectors):
                 return MultiInspector(sub_inspectors)
 
         return inspect
@@ -775,9 +775,8 @@ class Check(InspectorProxy):
         if self._exception:
             if message is None:
                 raise error_factory(self._exception, *args, **kwargs)
-            else:
-                kwargs.setdefault("error", self._exception)
-                raise error_factory(message.format(*args, **kwargs))
+            kwargs.setdefault("error", self._exception)
+            raise error_factory(message.format(*args, **kwargs))
 
     otherwise = or_raise
 
@@ -926,11 +925,10 @@ def ensure_annotations(f):
             else:
                 arg_properties.append((arg, templ, pos))
 
-    if "return" in f.__annotations__:
-        return_templ = f.__annotations__["return"]
-        return WrappedFunctionReturn(arg_properties, f, return_templ)
-    else:
+    if "return" not in f.__annotations__:
         return WrappedFunction(arg_properties, f)
+    return_templ = f.__annotations__["return"]
+    return WrappedFunctionReturn(arg_properties, f, return_templ)
 
 
 ensure = Ensure()
